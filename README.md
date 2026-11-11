@@ -1,5 +1,65 @@
 <div align="center">
-<h1>🌅 Horizon</h1>
+<h1>🛰️ Trending-Radar</h1>
+<p><strong>GitHub Trending & Hugging Face Top Models Radar with LG EXAONE 2.5</strong></p>
+<p><em>(Forked from <a href="https://github.com/Thysrael/Horizon">Thysrael/Horizon</a>)</em></p>
+
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![LG EXAONE](https://img.shields.io/badge/AI-LG%20EXAONE%202.5-C40030?style=for-the-badge)](https://docs.exaone.ai)
+[![Korean Ready](https://img.shields.io/badge/Language-Korean%20%ED%95%9C%EA%B5%AD%EC%96%B4-0052CC?style=for-the-badge)](RUNBOOK_KO.md)
+
+</div>
+
+---
+
+## 🌟 기존 Horizon과의 차이점 (Differences from Original)
+
+본 저장소는 1.3만 스타의 오픈소스 레이더 [Thysrael/Horizon](https://github.com/Thysrael/Horizon)을 기반으로, **한국어 개발자를 위한 트렌드 수집 파이프라인과 LG 엑사원(EXAONE) AI 엔진을 결합**하여 고도화한 프로젝트입니다.
+
+| 구분 | 기존 Horizon (Upstream) | 🛰️ Trending-Radar (이 저장소) |
+|---|---|---|
+| **GitHub Trending** | OSS Insight API 기반 일부 수집 | **공식 GitHub Trending HTML 스크래퍼 신규 개발** (`github_trending.py`)<br>• Daily / Weekly / Monthly 전수 수집 및 중복 레포 지능형 병합<br>• 기간별 순위 변동 추적 및 언어별 필터링 완벽 지원 |
+| **Hugging Face** | 미지원 | **Hugging Face Trending Models TOP 50 수집기 신규 탑재** (`huggingface.py`)<br>• 트렌딩 점수, 30일 다운로드수, 좋아요, 태스크/태그 실시간 추출 |
+| **AI 두뇌 (LLM)** | 해외 상용 모델 중심 (OpenAI, Anthropic 등) | **LG EXAONE 2.5 (`k-exaone_v2.5`) 네이티브 연동**<br>• OpenAI 호환 규격 및 SSE 스트리밍 청크 최적화<br>• 한국어 전용 프롬프트 및 `Asia/Seoul` 표준시 리포트 렌더링 |
+| **트렌딩 전용 프로필** | 범용 뉴스/블로그 중심 | **`profiles/trending/` 신규 추가**<br>• 깃허브·모델 전용 요약, 급상승 이유(`why_trending`), 타깃 독자(`who_should_look`) 분석 |
+| **무료 쿼터 최적화** | 무제한 API 호출 전제 | **EXAONE 일일 무료 한도(하루 100회) 세이프가드 구축**<br>• `data/config.quota.json` 프리셋 제공 (상위 35건 엄선, 하루 ~70회 호출로 한도 방어)<br>• 한도 초과 시 조용히 빈 파일이 남는 대신 `AIProviderUnavailableError` 즉각 감지 |
+| **운영 가이드** | 영문/중문/일문 중심 | **상세한 한국어 운영 가이드 ([RUNBOOK_KO.md](RUNBOOK_KO.md)) 기본 수록** |
+
+---
+
+## 🚀 빠른 시작 (Quick Start)
+
+### 1. 설치 및 환경설정
+```bash
+git clone https://github.com/khulable-commits/trending-radar.git
+cd trending-radar
+
+# 의존성 설치
+pip install -e .
+
+# 환경변수 설정
+cp .env.example .env
+# .env 파일에 EXAONE_API_KEY 입력 (키는 깃허브에 절대 커밋되지 않습니다)
+```
+
+### 2. 브리핑 생성
+```bash
+# [추천] EXAONE 무료 키(하루 100회) 맞춤 실행 (~35건 엄선 요약)
+python -m src.main --config data/config.quota.json
+
+# [전체] 깃허브(33건) + 허깅페이스(50건) 전체 수집 실행 (유료/상위 한도 필요)
+python -m src.main
+```
+
+생성된 리포트는 `data/summaries/YYYY-MM-DD-ko.md` 및 `docs/_posts/`에서 확인하실 수 있습니다.
+
+---
+
+<details>
+<summary><strong>📖 원본 Horizon 프로젝트 소개 보기 (Click to expand original README)</strong></summary>
+
+<div align="center">
+<h1>🌅 Horizon (Original)</h1>
 
 <p><strong>Enjoy the News itself. Leave others to Horizon</strong></p>
 
@@ -398,3 +458,6 @@ Want to share valuable source discoveries with the Horizon community? Please sub
 ## License
 
 [MIT](LICENSE)
+
+</details>
+
