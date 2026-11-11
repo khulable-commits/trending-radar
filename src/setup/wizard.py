@@ -538,4 +538,8 @@ def _count_sources(config: Config) -> int:
         count += 1
     if config.sources.google_news and config.sources.google_news.enabled:
         count += 1
+    if config.sources.github_trending.enabled:
+        count += 1
+    if config.sources.huggingface.enabled:
+        count += 1
     return count

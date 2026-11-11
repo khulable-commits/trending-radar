@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 import re
 from typing import Annotated, Literal, Optional, List, Dict, Any, NamedTuple, Union
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, HttpUrl, Field, field_validator, model_validator
 
 
@@ -20,6 +21,8 @@ class SourceType(str, Enum):
     OSSINSIGHT = "ossinsight"
     GDELT = "gdelt"
     GOOGLE_NEWS = "google_news"
+    GITHUB_TRENDING = "github_trending"
+    HUGGINGFACE = "huggingface"
 
 
 class SourceDefinition(NamedTuple):
@@ -41,6 +44,8 @@ SOURCE_REGISTRY = {
     SourceType.OSSINSIGHT.value: SourceDefinition("ossinsight"),
     SourceType.GDELT.value: SourceDefinition("gdelt"),
     SourceType.GOOGLE_NEWS.value: SourceDefinition("google_news"),
+    SourceType.GITHUB_TRENDING.value: SourceDefinition("github_trending"),
+    SourceType.HUGGINGFACE.value: SourceDefinition("huggingface"),
 }
 
 ProfileRoute = Optional[Union[str, List[str]]]
@@ -488,6 +493,55 @@ class GoogleNewsConfig(BaseModel):
     profile: ProfileRoute = None
 
 
+class GitHubTrendingConfig(BaseModel):
+    """GitHub Trending page source configuration.
+
+    Scrapes https://github.com/trending for the configured periods. GitHub
+    publishes no publication timestamps there, so each snapshot is emitted
+    with the fetch time and the period rank it was observed at. A repository
+    that appears in several periods is emitted once, with every observed
+    rank kept under ``metadata["periods"]``.
+    """
+
+    enabled: bool = False
+    periods: List[Literal["daily", "weekly", "monthly"]] = Field(
+        default_factory=lambda: ["daily", "weekly", "monthly"]
+    )
+    language: Optional[str] = None  # e.g. "python"; None = all languages
+    spoken_language: Optional[str] = None  # e.g. "korean"; None = all
+    max_items_per_period: int = Field(default=25, ge=1, le=100)
+    category: Optional[str] = None
+    profile: ProfileRoute = None
+
+    @field_validator("periods")
+    @classmethod
+    def require_periods(cls, periods: List[str]) -> List[str]:
+        if not periods:
+            raise ValueError("github_trending.periods cannot be empty")
+        if len(periods) != len(set(periods)):
+            raise ValueError("github_trending.periods entries must be unique")
+        return periods
+
+
+class HuggingFaceConfig(BaseModel):
+    """Hugging Face trending models source configuration.
+
+    Queries the public models API
+    (https://huggingface.co/api/models) sorted by trending score and emits
+    the top ``limit`` models. No API key is required.
+    """
+
+    enabled: bool = False
+    limit: int = Field(default=50, ge=1, le=100)
+    sort: Literal["trendingScore", "likes", "downloads", "lastModified"] = (
+        "trendingScore"
+    )
+    pipeline_tag: Optional[str] = None  # API "filter" tag, e.g. "text-generation"
+    search: Optional[str] = None  # optional server-side model name filter
+    category: Optional[str] = None
+    profile: ProfileRoute = None
+
+
 class SourcesConfig(BaseModel):
     """All sources configuration."""
 
@@ -501,6 +555,8 @@ class SourcesConfig(BaseModel):
     ossinsight: OSSInsightConfig = Field(default_factory=OSSInsightConfig)
     gdelt: Optional[GDELTConfig] = None
     google_news: Optional[GoogleNewsConfig] = None
+    github_trending: GitHubTrendingConfig = Field(default_factory=GitHubTrendingConfig)
+    huggingface: HuggingFaceConfig = Field(default_factory=HuggingFaceConfig)
 
 
 class WebhookConfig(BaseModel):
@@ -579,11 +635,22 @@ class ProcessingConfig(BaseModel):
 
 
 class DisplayConfig(BaseModel):
-    """Controls terminal output presentation."""
+    """Controls terminal output presentation and displayed timestamps."""
 
     model_config = ConfigDict(extra="forbid")
 
     icon_style: Literal["emoji", "nerd", "ascii"] = "emoji"
+    # IANA zone used for digest dates and item timestamps in rendered summaries.
+    timezone: str = "UTC"
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except Exception as exc:
+            raise ValueError(f"unknown display.timezone: {value}") from exc
+        return value
 
 
 class CollectionConfig(BaseModel):

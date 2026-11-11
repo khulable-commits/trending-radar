@@ -1,0 +1,149 @@
+{
+  "ai": {
+    "provider": "openai",
+    "model": "k-exaone_v2.5",
+    "base_url": "https://api.exaone.ai/v1",
+    "api_key_env": "EXAONE_API_KEY",
+    "temperature": 0.3,
+    "max_tokens": 8192,
+    "throttle_sec": 1.0,
+    "analysis_concurrency": 1,
+    "enrichment_concurrency": 1,
+    "languages": [
+      "ko"
+    ],
+    "extra_body": {
+      "reasoning_effort": "low",
+      "top_p": 0.95
+    }
+  },
+  "processing": {
+    "profiles_dir": "profiles",
+    "default_profile": "tech-news",
+    "profile_settings": {
+      "trending": {
+        "threshold": 3.0,
+        "topic_dedup": false
+      },
+      "tech-news": {
+        "threshold": 7.0,
+        "topic_dedup": true
+      },
+      "tech-blog": {
+        "threshold": 4.0,
+        "topic_dedup": false
+      },
+      "finance-news": {
+        "threshold": 7.0,
+        "topic_dedup": true
+      }
+    }
+  },
+  "display": {
+    "icon_style": "emoji",
+    "timezone": "Asia/Seoul"
+  },
+  "email": {
+    "enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 465,
+    "imap_server": "imap.gmail.com",
+    "imap_port": 993,
+    "email_address": "khul.able@gmail.com",
+    "sender_name": "Horizon Daily",
+    "subscribe_keyword": "SUBSCRIBE",
+    "unsubscribe_keyword": "UNSUBSCRIBE"
+  },
+  "sources": {
+    "github": [],
+    "hackernews": {
+      "enabled": true,
+      "fetch_top_stories": 5,
+      "min_score": 250,
+      "category": "hn",
+      "profile": "tech-news"
+    },
+    "rss": [],
+    "reddit": {
+      "enabled": false,
+      "subreddits": [],
+      "users": [],
+      "fetch_comments": 0
+    },
+    "telegram": {
+      "enabled": false,
+      "channels": []
+    },
+    "twitter": {
+      "enabled": false,
+      "mode": "apify",
+      "users": [],
+      "keywords": [],
+      "fetch_limit": 10
+    },
+    "openbb": null,
+    "ossinsight": {
+      "enabled": false,
+      "period": "past_24_hours",
+      "languages": [
+        "All"
+      ],
+      "keywords": [],
+      "min_stars": 10,
+      "max_items": 30,
+      "profile": "trending"
+    },
+    "gdelt": null,
+    "google_news": null,
+    "github_trending": {
+      "enabled": true,
+      "periods": [
+        "daily",
+        "weekly"
+      ],
+      "language": null,
+      "spoken_language": null,
+      "max_items_per_period": 8,
+      "category": "github-trending",
+      "profile": "trending"
+    },
+    "huggingface": {
+      "enabled": true,
+      "limit": 16,
+      "sort": "trendingScore",
+      "pipeline_tag": null,
+      "search": null,
+      "category": "hf-trending",
+      "profile": "trending"
+    }
+  },
+  "collection": {
+    "time_window_hours": 24
+  },
+  "digest": {
+    "max_items": 32,
+    "profile_order": [
+      "trending",
+      "tech-news"
+    ],
+    "category_groups": {},
+    "default_group": "other",
+    "default_group_limit": null
+  },
+  "webhook": {
+    "enabled": false,
+    "url_env": "HORIZON_WEBHOOK_URL",
+    "delivery": "summary",
+    "overview_position": "first",
+    "platform": "generic",
+    "layout": "markdown",
+    "fallback_layout": "markdown",
+    "languages": null,
+    "headers": ""
+  },
+  "wechat": {
+    "enabled": false,
+    "languages": null,
+    "chunk_size": 4000
+  }
+}

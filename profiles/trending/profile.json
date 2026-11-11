@@ -1,0 +1,33 @@
+{
+  "id": "trending",
+  "name": "Trending Projects & Models",
+  "display_names": {
+    "ko": "트렌딩 저장소·모델",
+    "zh": "热门项目与模型"
+  },
+  "match": "match.md",
+  "analysis": "analysis.md",
+  "enrichment": {
+    "prompt": "enrichment.md",
+    "blocks": [
+      {
+        "id": "summary",
+        "type": "section",
+        "tools": [],
+        "primary": true
+      },
+      {
+        "id": "why_trending",
+        "type": "section",
+        "tools": [],
+        "optional": true
+      },
+      {
+        "id": "who_should_look",
+        "type": "section",
+        "tools": [],
+        "optional": true
+      }
+    ]
+  }
+}

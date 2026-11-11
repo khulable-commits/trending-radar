@@ -318,6 +318,8 @@ Schedule Horizon with **GitHub Actions** using the [daily workflow template](.gi
 | **GitHub** | User events & repo releases | — |
 | **OpenBB** | Financial company news by watchlist/provider | — |
 | **OSS Insight** | Trending open-source repositories | — |
+| **GitHub Trending** | Repositories on github.com/trending for daily, weekly and monthly | — |
+| **Hugging Face** | Top trending models by trending score | — |
 | **GDELT** | News matching a search query | — |
 | **Google News** | News search via RSS | — |
 

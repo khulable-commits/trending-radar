@@ -178,6 +178,8 @@ def test_mcp_filter_and_reporting_support_every_registered_source() -> None:
                 "ossinsight": {"enabled": True},
                 "gdelt": {"enabled": True},
                 "google_news": {"enabled": True},
+                "github_trending": {"enabled": True},
+                "huggingface": {"enabled": True},
             },
         }
     )

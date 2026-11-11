@@ -258,3 +258,63 @@ When users are configured, a single profile run fetches their timelines together
 **Authentication**: Set `APIFY_TOKEN` in your `.env`. Get a token at [console.apify.com](https://console.apify.com/account/integrations).
 
 **Extracted data**: tweet text, URL, author, publish time, likes, retweets, replies, views, category, and (optionally) reply-thread text appended under `--- Top Comments ---`.
+
+## GitHub Trending
+
+**File**: `src/scrapers/github_trending.py`
+
+GitHub publishes no API for its Trending page, so this scraper reads the page HTML (`https://github.com/trending`) with BeautifulSoup. It is separate from `sources.github`, which tracks user events and releases through the REST API.
+
+**Config** (`sources.github_trending`):
+
+```json
+{
+  "enabled": true,
+  "periods": ["daily", "weekly", "monthly"],
+  "language": null,
+  "spoken_language": null,
+  "max_items_per_period": 25,
+  "category": "github-trending",
+  "profile": "trending"
+}
+```
+
+- `periods` — any combination of `daily`, `weekly`, `monthly` (the page's `since` values). Each period is one HTTP request.
+- `language` — repository language filter passed to the page (for example `"python"` or `"typescript"`); `null` means all languages.
+- `spoken_language` — spoken-language filter (for example `"korean"`); `null` means all.
+- `max_items_per_period` — rows kept from each period's page
+- `category`, `profile` — applied to every item from this source
+
+**Extracted data**: repository (`owner/name`), period rank, stars gained during the period, total stars, total forks, primary language, description, and every other period the same repository appeared in. Because the page carries no publication timestamps, items use the fetch time as `published_at`; the trending window itself is metadata.
+
+A repository trending in several periods is emitted once, with all observed ranks under `metadata["periods"]` (for example `{"daily": {"rank": 1, "stars_period": 3108}, "weekly": {"rank": 3, ...}}`). Item IDs use `github_trending:repo:{owner/name}`, so repeated runs replace rather than duplicate the same repository.
+
+**Failure handling**: each period is fetched independently. A blocked or rate-limited period is reported as a named failure while the remaining periods still deliver items.
+
+## Hugging Face
+
+**File**: `src/scrapers/huggingface.py`
+
+Reads the public models API (`https://huggingface.co/api/models`) and emits the top `limit` models in the configured ranking order. No API key is required.
+
+**Config** (`sources.huggingface`):
+
+```json
+{
+  "enabled": true,
+  "limit": 50,
+  "sort": "trendingScore",
+  "pipeline_tag": null,
+  "search": null,
+  "category": "hf-trending",
+  "profile": "trending"
+}
+```
+
+- `limit` — number of models to keep (1–100; the API default request is the same value)
+- `sort` — `trendingScore` (default), `likes`, `downloads`, or `lastModified`; always descending
+- `pipeline_tag` — optional server-side tag filter passed as the API's `filter` parameter (for example `"text-generation"`). The API matches any model whose tags include it, so an `image-text-to-text` model tagged `text-generation` can still appear.
+- `search` — optional model-name search filter
+- `category`, `profile` — applied to every item from this source
+
+**Extracted data**: model ID, rank, task (`pipeline_tag`), library, likes, 30-day downloads, trending score, creation date, and model-describing tags. Tag entries that only describe repository plumbing (`base_model:`, `license:`, `region:`, `dataset:`, `arxiv:`, `doi:`, `autotrain_`) are dropped. Item IDs use `huggingface:model:{model_id}`; `published_at` is the fetch time and the model's own `createdAt` stays in metadata.

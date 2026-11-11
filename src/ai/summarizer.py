@@ -3,11 +3,23 @@
 import html
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from urllib.parse import quote, urlsplit
+from zoneinfo import ZoneInfo
 
 from .localization import normalize_language
 from ..models import ContentItem
+
+
+def display_time(value: datetime, timezone_name: str = "UTC") -> datetime:
+    """Convert an item timestamp into the configured display timezone."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    try:
+        return value.astimezone(ZoneInfo(timezone_name))
+    except Exception:
+        return value
 
 
 _CJK = r"[\u4e00-\u9fff\u3400-\u4dbf]"
@@ -88,6 +100,26 @@ LABELS = {
             "3. 检查 AI 模型是否正常工作\n"
         ),
     },
+    "ko": {
+        "header": "Horizon 데일리",
+        "source": "출처",
+        "background": "배경",
+        "discussion": "커뮤니티 논의",
+        "references": "참고 링크",
+        "tags": "태그",
+        "selected_items": "전체 {total}건 가운데 {selected}건을 골랐습니다.",
+        "empty_analyzed": "전체 {total}건을 분석했지만 중요도 기준을 넘은 항목이 없습니다.",
+        "empty_body": (
+            "오늘은 눈에 띄는 소식이 없습니다. 가능한 원인은 다음과 같습니다.\n"
+            "- 관심 정보원이 오늘 조용했습니다.\n"
+            "- AI 점수 기준이 너무 높게 잡혀 있습니다.\n"
+            "- 정보원 종류를 더 넓힐 필요가 있습니다.\n\n"
+            "확인해볼 것:\n"
+            "1. 프로필 필터 기준(threshold) 낮추기\n"
+            "2. 다양한 정보원 추가하기\n"
+            "3. AI 모델이 정상 동작하는지 점검하기\n"
+        ),
+    },
 }
 
 
@@ -122,9 +154,12 @@ class DailySummarizer:
         self,
         profile_names: Optional[Dict[str, Dict[str, str]]] = None,
         profile_order: Optional[List[str]] = None,
+        *,
+        timezone: str = "UTC",
     ):
         self.profile_names = profile_names or {}
         self.profile_order = profile_order or []
+        self.timezone = timezone
 
     @staticmethod
     def _profile_id(item: ContentItem) -> str:
@@ -291,6 +326,12 @@ class DailySummarizer:
                 f"> 从 {total_fetched} 条内容中筛选出 {len(items)} 条重要资讯。\n\n"
                 "下面会按内容逐条发送详情，你可以只看感兴趣的标题。\n\n"
             )
+        elif language == "ko":
+            header = (
+                f"# {labels['header']} - {date}\n\n"
+                f"> 전체 {total_fetched}건 가운데 {len(items)}건을 골랐습니다.\n\n"
+                "아래에서 항목별 상세를 차례로 보냅니다. 관심 있는 항목만 보셔도 됩니다.\n\n"
+            )
         else:
             header = (
                 f"# {labels['header']} - {date}\n\n"
@@ -331,7 +372,12 @@ class DailySummarizer:
     ) -> str:
         """Generate one item message for multi-message webhook delivery."""
         labels = LABELS.get(language, LABELS["en"])
-        prefix = f"第 {index}/{total} 条\n\n" if language == "zh" else f"Item {index}/{total}\n\n"
+        if language == "zh":
+            prefix = f"第 {index}/{total} 条\n\n"
+        elif language == "ko":
+            prefix = f"{index}/{total}번째 항목\n\n"
+        else:
+            prefix = f"Item {index}/{total}\n\n"
         return normalize_language(
             prefix
             + self._format_item(
@@ -400,14 +446,20 @@ class DailySummarizer:
         else:
             source_parts.append(_escape_markdown(item.author or "unknown"))
         if item.published_at:
+            published = display_time(item.published_at, self.timezone)
             if language == "zh":
                 source_parts.append(
-                    f"{item.published_at.month}月{item.published_at.day}日 "
-                    f"{item.published_at:%H:%M}"
+                    f"{published.month}月{published.day}日 "
+                    f"{published:%H:%M}"
+                )
+            elif language == "ko":
+                source_parts.append(
+                    f"{published.month}월 {published.day}일 "
+                    f"{published:%H:%M}"
                 )
             else:
-                day = item.published_at.strftime("%d").lstrip("0")
-                source_parts.append(item.published_at.strftime(f"%b {day}, %H:%M"))
+                day = published.strftime("%d").lstrip("0")
+                source_parts.append(published.strftime(f"%b {day}, %H:%M"))
         source_line = " \u00b7 ".join(source_parts)  # ·
 
         discussion_url = meta.get("discussion_url")

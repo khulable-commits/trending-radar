@@ -8,11 +8,12 @@ from functools import cached_property
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 from urllib.parse import unquote_plus, urlsplit
+from zoneinfo import ZoneInfo
 import httpx
 from rich.console import Console
 
 from .console_icons import get_icons
-from .models import Config, ContentItem
+from .models import Config, ContentItem, SourceType
 from .storage.manager import StorageManager, safe_output_path
 from .services.email import EmailManager
 from .services.webhook import WebhookNotifier
@@ -29,6 +30,8 @@ from .scrapers.openbb import OpenBBScraper
 from .scrapers.ossinsight import OSSInsightScraper
 from .scrapers.gdelt import GDELTScraper
 from .scrapers.google_news import GoogleNewsScraper
+from .scrapers.github_trending import GitHubTrendingScraper
+from .scrapers.huggingface import HuggingFaceScraper
 from .ai.client import AIClient, create_ai_client
 from .ai.errors import AIProviderUnavailableError
 from .ai.analyzer import ContentAnalyzer
@@ -319,7 +322,9 @@ class HorizonOrchestrator:
                 )
 
             # 7. Generate and save daily summaries for each configured language
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.now(
+                ZoneInfo(self.config.display.timezone)
+            ).strftime("%Y-%m-%d")
             for lang in self.config.ai.languages:
                 language_items = [
                     item for item in important_items
@@ -328,6 +333,7 @@ class HorizonOrchestrator:
                 summarizer = DailySummarizer(
                     profile_names=self.profiles.names,
                     profile_order=self.config.digest.profile_order,
+                    timezone=self.config.display.timezone,
                 )
                 summary = await summarizer.generate_summary(language_items, today, len(all_items), language=lang)
 
@@ -516,6 +522,20 @@ class HorizonOrchestrator:
                 gn_scraper = GoogleNewsScraper(self.config.sources.google_news, client)
                 tasks.append(self._fetch_with_progress("Google News", gn_scraper, since))
 
+            # GitHub Trending page (daily/weekly/monthly)
+            if self.config.sources.github_trending.enabled:
+                gh_trending_scraper = GitHubTrendingScraper(
+                    self.config.sources.github_trending, client
+                )
+                tasks.append(
+                    self._fetch_with_progress("GitHub Trending", gh_trending_scraper, since)
+                )
+
+            # Hugging Face trending models (public API, top N)
+            if self.config.sources.huggingface.enabled:
+                hf_scraper = HuggingFaceScraper(self.config.sources.huggingface, client)
+                tasks.append(self._fetch_with_progress("Hugging Face", hf_scraper, since))
+
             # Fetch all concurrently
             outcomes = await asyncio.gather(*tasks)
             self.last_fetch_report = FetchReport(outcomes=list(outcomes))
@@ -583,8 +603,12 @@ class HorizonOrchestrator:
             return meta["feed_name"]
         if meta.get("channel"):
             return f"@{meta['channel']}"
-        if meta.get("period") and meta.get("repo"):
+        if item.source_type == SourceType.OSSINSIGHT and meta.get("period"):
             return f"ossinsight:{meta.get('primary_language', 'all')}"
+        if item.source_type == SourceType.GITHUB_TRENDING:
+            return f"github-trending:{meta.get('period', 'all')}"
+        if item.source_type == SourceType.HUGGINGFACE:
+            return f"huggingface:{meta.get('pipeline_tag') or meta.get('sort', 'all')}"
         if meta.get("repo"):
             return meta["repo"]
         if meta.get("watchlist"):
@@ -1097,6 +1121,7 @@ class HorizonOrchestrator:
             ai_client, self.profiles, console=self.console,
             concurrency=self.config.ai.analysis_concurrency,
             throttle_sec=self.config.ai.throttle_sec,
+            language=(self.config.ai.languages[0] if self.config.ai.languages else None),
         )
         await analyzer.analyze_batch(expanded)
 
@@ -1152,6 +1177,7 @@ class HorizonOrchestrator:
             ai_client, self.profiles, console=self.console,
             concurrency=self.config.ai.analysis_concurrency,
             throttle_sec=self.config.ai.throttle_sec,
+            language=(self.config.ai.languages[0] if self.config.ai.languages else None),
         )
 
         return await analyzer.analyze_batch(items)

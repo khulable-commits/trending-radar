@@ -28,7 +28,8 @@
     }
   },
   "display": {
-    "icon_style": "emoji"
+    "icon_style": "emoji",
+    "timezone": "UTC"
   },
   "email": {
     "enabled": false,
@@ -201,6 +202,24 @@
       "ceid": null,
       "max_results": 100,
       "category": "news",
+      "profile": "tech-news"
+    },
+    "github_trending": {
+      "enabled": false,
+      "periods": ["daily", "weekly", "monthly"],
+      "language": null,
+      "spoken_language": null,
+      "max_items_per_period": 25,
+      "category": "github-trending",
+      "profile": "tech-news"
+    },
+    "huggingface": {
+      "enabled": false,
+      "limit": 50,
+      "sort": "trendingScore",
+      "pipeline_tag": null,
+      "search": null,
+      "category": "hf-trending",
       "profile": "tech-news"
     }
   },

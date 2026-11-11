@@ -12,7 +12,8 @@ ANALYSIS_RULES = f"""You are a content curator evaluating an item under the supp
 - Apply the profile's evaluation policy consistently."""
 
 
-def analysis_system_prompt(profile: LoadedProfile) -> str:
+def analysis_system_prompt(profile: LoadedProfile, language: str | None = None) -> str:
+    language_note = analysis_language_note(language) if language else ""
     return f"""{ANALYSIS_RULES}
 
 # Profile policy
@@ -27,7 +28,25 @@ Return valid JSON only:
   "reason": "<concise explanation>",
   "summary": "<one-sentence summary>",
   "tags": ["<tag>", "..."]
-}}"""
+}}{language_note}"""
+
+
+def analysis_language_note(language: str) -> str:
+    """Keep reader-facing analysis text in the configured output language."""
+    lowered = language.lower()
+    if lowered == "ko":
+        return (
+            "\n\n# Output language\n\n"
+            "Write `reason` and `summary` in Korean (한국어). "
+            "Keep `tags` as short technical terms, which may stay in English."
+        )
+    if lowered == "zh":
+        return (
+            "\n\n# Output language\n\n"
+            "Write `reason` and `summary` in Simplified Chinese. "
+            "Keep `tags` as short technical terms."
+        )
+    return ""
 
 
 def analysis_user_prompt(

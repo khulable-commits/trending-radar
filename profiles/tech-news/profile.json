@@ -2,7 +2,8 @@
   "id": "tech-news",
   "name": "Technology News",
   "display_names": {
-    "zh": "科技新闻"
+    "zh": "科技新闻",
+    "ko": "기술 뉴스"
   },
   "match": "match.md",
   "analysis": "analysis.md",

@@ -31,6 +31,7 @@ class ContentAnalyzer:
         *,
         concurrency: int = 1,
         throttle_sec: float = 0.0,
+        language: Optional[str] = None,
     ):
         self.client = ai_client
         self.profiles = profiles
@@ -38,6 +39,7 @@ class ContentAnalyzer:
         self.console = console or Console(stderr=True)
         self.concurrency = max(concurrency, 1)
         self.throttle_sec = max(throttle_sec, 0.0)
+        self.language = language
 
     @staticmethod
     def _parse_json_response(response: str) -> Optional[dict]:
@@ -147,14 +149,14 @@ class ContentAnalyzer:
 
         # Get AI completion
         response = await self.client.complete(
-            system=analysis_system_prompt(profile),
+            system=analysis_system_prompt(profile, self.language),
             user=user_prompt,
         )
 
         result, failure = self._validate_analysis_response(response)
         if result is None:
             repair_response = await self.client.complete(
-                system=analysis_system_prompt(profile),
+                system=analysis_system_prompt(profile, self.language),
                 user=(
                     user_prompt
                     + "\n\nYour previous response did not satisfy the output contract "

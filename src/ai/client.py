@@ -113,6 +113,20 @@ def _is_token_limit_unsupported(message: str, use_max_completion_tokens: bool) -
     )
 
 
+def _is_daily_quota_exhausted(exc: Exception) -> bool:
+    """Return True when the provider reports that today's allowance is spent.
+
+    A daily cap cannot recover inside a run, so it stops the pipeline instead of
+    being retried once per item.
+    """
+    lowered = str(exc).lower()
+    return (
+        "day limit" in lowered
+        or "daily limit" in lowered
+        or "insufficient_quota" in lowered
+    )
+
+
 def _chat_extra_body(extra_body: dict, include_temperature: bool, use_max_completion_tokens: bool) -> dict:
     """Preserve overrides without reintroducing rejected request parameters."""
     body = dict(extra_body)
@@ -331,6 +345,12 @@ class OpenAIClient(AIClient):
                 )
                 break
             except OpenAIStatusError as exc:
+                if exc.status_code == 429 and _is_daily_quota_exhausted(exc):
+                    raise AIProviderUnavailableError(
+                        "The AI provider's daily allowance is exhausted; the run stopped "
+                        f"instead of retrying every item ({exc}). Raise the provider limit "
+                        "or collect fewer items, then run again after the allowance resets."
+                    ) from exc
                 if exc.status_code not in (400, 422):
                     raise
                 if include_temperature and _is_temperature_unsupported(str(exc)):
@@ -460,6 +480,12 @@ class AzureOpenAIClient(AIClient):
                 )
                 break
             except OpenAIStatusError as exc:
+                if exc.status_code == 429 and _is_daily_quota_exhausted(exc):
+                    raise AIProviderUnavailableError(
+                        "The AI provider's daily allowance is exhausted; the run stopped "
+                        f"instead of retrying every item ({exc}). Raise the provider limit "
+                        "or collect fewer items, then run again after the allowance resets."
+                    ) from exc
                 if exc.status_code not in (400, 422):
                     raise
                 if include_temperature and _is_temperature_unsupported(str(exc)):

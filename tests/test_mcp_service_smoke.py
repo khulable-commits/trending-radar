@@ -449,11 +449,12 @@ def test_generate_summary_persists_informative_empty_summary(
     received_orders = []
 
     class RecordingSummarizer(DailySummarizer):
-        def __init__(self, *, profile_names=None, profile_order=None):  # type: ignore[no-untyped-def]
+        def __init__(self, *, profile_names=None, profile_order=None, timezone="UTC"):  # type: ignore[no-untyped-def]
             received_orders.append(profile_order)
             super().__init__(
                 profile_names=profile_names,
                 profile_order=profile_order,
+                timezone=timezone,
             )
 
     monkeypatch.setattr(service, "_profiles", lambda ctx: PROFILES)
